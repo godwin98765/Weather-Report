@@ -1,12 +1,20 @@
 import os
+import sys
 import requests
 import smtplib
 import ssl
+from email.header import Header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import math
+
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 # ==================================================
 # CONFIGURATION
@@ -116,7 +124,7 @@ def format_wind_direction(degrees):
     if direction is None or degrees is None:
         return "Not available"
     try:
-        return f"{direction} ({int(round(float(degrees)))}Â°)"
+        return f"{direction} ({int(round(float(degrees)))}°)"
     except (TypeError, ValueError):
         return "Not available"
 
@@ -248,12 +256,12 @@ def calculate_next_24_hours(hourly_data):
         if diff >= 1.5:
             result["trend_text"] = (
                 f"The temperature is expected to rise from approximately "
-                f"{result['start_temp']:.1f} Â°C to {result['end_temp']:.1f} Â°C."
+                f"{result['start_temp']:.1f} °C to {result['end_temp']:.1f} °C."
             )
         elif diff <= -1.5:
             result["trend_text"] = (
                 f"The temperature is expected to fall from approximately "
-                f"{result['start_temp']:.1f} Â°C to {result['end_temp']:.1f} Â°C."
+                f"{result['start_temp']:.1f} °C to {result['end_temp']:.1f} °C."
             )
         else:
             result["trend_text"] = "The temperature is expected to remain relatively stable."
@@ -434,7 +442,7 @@ def generate_plain_text_email(context):
     lines.append("WEATHER NOTE")
     lines.append(context["weather_note"])
     lines.append("")
-    lines.append("Have a great day! ðŸŒ")
+    lines.append("Have a great day! 🌟")
 
     return "\n".join(lines)
 
@@ -443,8 +451,12 @@ def generate_html_email(context):
     bullets_html = "".join(f"<li>{b}</li>" for b in context["bullets"])
 
     html = f"""\
+<!DOCTYPE html>
 <html>
-<head></head>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
 <body style="margin:0;padding:0;background-color:#f0f6fb;font-family:Arial, Helvetica, sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f6fb;padding:20px 0;">
     <tr>
@@ -453,8 +465,8 @@ def generate_html_email(context):
 
           <tr>
             <td style="background-color:#1f6f9e;padding:24px 30px;">
-              <h1 style="color:#ffffff;font-size:20px;margin:0;">ðŸŒ¨ï¸ Daily Weather Update</h1>
-              <p style="color:#dceefc;font-size:13px;margin:6px 0 0 0;">{LOCATION_NAME} â€” {context['date_str']}</p>
+              <h1 style="color:#ffffff;font-size:20px;margin:0;">🌦️ Daily Weather Update</h1>
+              <p style="color:#dceefc;font-size:13px;margin:6px 0 0 0;">{LOCATION_NAME} — {context['date_str']}</p>
             </td>
           </tr>
 
@@ -467,7 +479,7 @@ def generate_html_email(context):
           <tr>
             <td style="padding:0 30px;">
               <div style="background-color:#eef7fc;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
-                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">ðŸŒ¡ï¸ CURRENT WEATHER</h2>
+                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">🌡️ CURRENT WEATHER</h2>
                 <p style="font-size:13px;color:#333333;margin:4px 0;">Temperature: <strong>{context['current_temp_str']}</strong></p>
                 <p style="font-size:13px;color:#333333;margin:4px 0;">Feels Like: {context['feels_like_str']}</p>
                 <p style="font-size:13px;color:#333333;margin:4px 0;">Condition: {context['current_condition']}</p>
@@ -476,7 +488,7 @@ def generate_html_email(context):
               </div>
 
               <div style="background-color:#eef7fc;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
-                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">ðŸŒ¤ï¸ TODAY'S FORECAST</h2>
+                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">🌤️ TODAY'S FORECAST</h2>
                 <p style="font-size:13px;color:#333333;margin:4px 0;">High: {context['temp_max_str']}</p>
                 <p style="font-size:13px;color:#333333;margin:4px 0;">Low: {context['temp_min_str']}</p>
                 <p style="font-size:13px;color:#333333;margin:4px 0;">Precipitation Chance: {context['precip_prob_max_str']}</p>
@@ -485,32 +497,32 @@ def generate_html_email(context):
               </div>
 
               <div style="background-color:#eef7fc;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
-                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">ðŸ’¨ WIND &amp; ðŸ‘ï¸ VISIBILITY</h2>
+                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">💨 WIND &amp; 👁️ VISIBILITY</h2>
                 <p style="font-size:13px;color:#333333;margin:4px 0;">Speed: {context['current_wind_speed_str']}</p>
                 <p style="font-size:13px;color:#333333;margin:4px 0;">Direction: {context['current_wind_dir_str']}</p>
                 <p style="font-size:13px;color:#333333;margin:4px 0;">Visibility: {context['visibility_str']}</p>
               </div>
 
               <div style="background-color:#eef7fc;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
-                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">ðŸŒ… SUN</h2>
+                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">🌅 SUN</h2>
                 <p style="font-size:13px;color:#333333;margin:4px 0;">Sunrise: {context['sunrise_str']}</p>
                 <p style="font-size:13px;color:#333333;margin:4px 0;">Sunset: {context['sunset_str']}</p>
               </div>
 
               <div style="background-color:#eef7fc;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
-                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">ðŸ”® NEXT 24 HOURS</h2>
+                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">🔮 NEXT 24 HOURS</h2>
                 <ul style="font-size:13px;color:#333333;margin:4px 0;padding-left:18px;">
                   {bullets_html}
                 </ul>
               </div>
 
               <div style="background-color:#eef7fc;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
-                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">ðŸ§¥ CLOTHING / TRAVEL TIP</h2>
+                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">🧣 CLOTHING / TRAVEL TIP</h2>
                 <p style="font-size:13px;color:#333333;margin:0;">{context['clothing_tip']}</p>
               </div>
 
               <div style="background-color:#eef7fc;border-radius:8px;padding:16px 20px;margin-bottom:16px;">
-                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">ðŸ“ WEATHER NOTE</h2>
+                <h2 style="font-size:14px;color:#1f6f9e;margin:0 0 10px 0;">📌 WEATHER NOTE</h2>
                 <p style="font-size:13px;color:#333333;margin:0;">{context['weather_note']}</p>
               </div>
             </td>
@@ -518,13 +530,13 @@ def generate_html_email(context):
 
           <tr>
             <td style="padding:16px 30px 26px 30px;">
-              <p style="font-size:13px;color:#333333;margin:0;">Have a great day! ðŸŒ</p>
+              <p style="font-size:13px;color:#333333;margin:0;">Have a great day! 🌟</p>
             </td>
           </tr>
 
           <tr>
             <td style="background-color:#f0f6fb;padding:14px 30px;">
-              <p style="font-size:11px;color:#888888;margin:0;">Data source: Open-Meteo â€” {LOCATION_NAME}</p>
+              <p style="font-size:11px;color:#888888;margin:0;">Data source: Open-Meteo — {LOCATION_NAME}</p>
             </td>
           </tr>
 
@@ -544,12 +556,12 @@ def generate_html_email(context):
 
 def send_email(subject, plain_text_body, html_body):
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
+    msg["Subject"] = Header(subject, "utf-8")
     msg["From"] = SENDER_EMAIL
     msg["To"] = RECIPIENT_EMAIL
 
-    part1 = MIMEText(plain_text_body, "plain")
-    part2 = MIMEText(html_body, "html")
+    part1 = MIMEText(plain_text_body, "plain", "utf-8")
+    part2 = MIMEText(html_body, "html", "utf-8")
 
     msg.attach(part1)
     msg.attach(part2)
@@ -603,8 +615,8 @@ def main():
 
     current_condition = weather_code_to_description(current_weather_code)
 
-    current_temp_str = safe_value(current_temp, lambda v: f"{v:.1f}", " Â°C")
-    feels_like_str = safe_value(feels_like, lambda v: f"{v:.1f}", " Â°C")
+    current_temp_str = safe_value(current_temp, lambda v: f"{v:.1f}", " °C")
+    feels_like_str = safe_value(feels_like, lambda v: f"{v:.1f}", " °C")
     humidity_str = safe_value(current_humidity, lambda v: f"{int(round(v))}", "%")
     current_precip_str = safe_value(current_precip, lambda v: f"{v:.2f}", " mm")
     current_wind_speed_str = safe_value(current_wind_speed, lambda v: f"{v:.1f}", " km/h")
@@ -625,8 +637,8 @@ def main():
     sunset_raw = first_daily("sunset")
     daily_time_raw = first_daily("time")
 
-    temp_max_str = safe_value(temp_max, lambda v: f"{v:.1f}", " Â°C")
-    temp_min_str = safe_value(temp_min, lambda v: f"{v:.1f}", " Â°C")
+    temp_max_str = safe_value(temp_max, lambda v: f"{v:.1f}", " °C")
+    temp_min_str = safe_value(temp_min, lambda v: f"{v:.1f}", " °C")
     precip_prob_max_str = safe_value(precip_prob_max, lambda v: f"{int(round(v))}", "%")
     wind_max_str = safe_value(wind_max, lambda v: f"{v:.1f}", " km/h")
     sunrise_str = format_time(sunrise_raw)
@@ -695,7 +707,7 @@ def main():
         "weather_note": weather_note,
     }
 
-    subject = f"ðŸŒ¨ï¸ Daily Weather Update â€“ Longyearbyen, Svalbard â€“ {date_str}"
+    subject = f"🌦️ Daily Weather Update – Longyearbyen, Svalbard – {date_str}"
 
     plain_text_body = generate_plain_text_email(context)
     html_body = generate_html_email(context)
