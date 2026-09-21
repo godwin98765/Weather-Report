@@ -1,6 +1,8 @@
 name: Daily Weather Alert
 
 on:
+  push:
+    branches: [ main ]
   schedule:
     # 8:00 AM IST (UTC+5:30) is 2:30 AM UTC
     - cron: '30 2 * * *'

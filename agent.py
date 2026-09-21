@@ -32,9 +32,13 @@ API_URL = (
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 465
 
-SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "godwin7776@gmail.com")
-SENDER_PASSWORD = os.environ.get("SENDER_PASSWORD", "pzzu bcwu vnou dfrv")
-RECIPIENT_EMAIL = os.environ.get("RECIPIENT_EMAIL", "wistlygod@gmail.com")
+_sender_env = os.environ.get("SENDER_EMAIL", "").strip()
+_password_env = os.environ.get("SENDER_PASSWORD", "").strip()
+_recipient_env = os.environ.get("RECIPIENT_EMAIL", "").strip()
+
+SENDER_EMAIL = _sender_env if _sender_env else "godwin7776@gmail.com"
+SENDER_PASSWORD = _password_env if _password_env else "pzzu bcwu vnou dfrv"
+RECIPIENT_EMAIL = _recipient_env if _recipient_env else "wistlygod@gmail.com"
 
 LOCATION_NAME = "Longyearbyen, Svalbard, Norway"
 TIMEZONE = "Europe/Oslo"
@@ -576,11 +580,11 @@ def send_email(subject, plain_text_body, html_body):
                 msg.as_string()
             )
         return True
-    except smtplib.SMTPAuthenticationError:
-        print("Error: SMTP authentication failed. Check your email and app password.")
+    except smtplib.SMTPAuthenticationError as e:
+        print(f"Error: SMTP authentication failed. Check your email and app password. Details: {e}")
         return False
-    except smtplib.SMTPConnectError:
-        print("Error: Could not connect to the SMTP server.")
+    except smtplib.SMTPConnectError as e:
+        print(f"Error: Could not connect to the SMTP server. Details: {e}")
         return False
     except smtplib.SMTPException as e:
         print(f"Error: An SMTP error occurred: {e}")
@@ -598,7 +602,7 @@ def main():
     data = get_weather_data()
     if data is None:
         print("Weather data could not be retrieved. Email will not be sent.")
-        return
+        sys.exit(1)
 
     current = data.get("current") or {}
     daily = data.get("daily") or {}
@@ -723,6 +727,7 @@ def main():
         print(f"Email recipient: {RECIPIENT_EMAIL}")
     else:
         print("Email sending failed. See error message above.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
